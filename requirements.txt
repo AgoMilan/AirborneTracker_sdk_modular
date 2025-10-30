@@ -1,0 +1,5 @@
+# Sem doplň potřebné knihovny, např.:
+# torch
+# ultralytics
+# opencv-python
+# pyyaml

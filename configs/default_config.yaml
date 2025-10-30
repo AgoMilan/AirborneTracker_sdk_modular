@@ -1,0 +1,31 @@
+# =====================================
+# DEFAULT CONFIGURATION - AirborneTracker SDK
+# =====================================
+
+camera:
+  source: 0                # 0 = default webkamera, nebo cesta k videu (např. "data/samples/test_video.mp4")
+  width: 1280
+  height: 720
+  fps: 30
+  max_frames: 0            # 0 = bez limitu
+
+detection:
+  model_path: "models/yolov8n.pt"   # cesta k YOLO modelu
+  classes: ["airplane", "drone", "bird", "helicopter"]
+  confidence_thresh: 0.4
+  iou_thresh: 0.5
+  input_size: 640
+
+tracking:
+  max_lost: 10             # kolik snímků může být objekt nezachycen, než se odstraní
+  iou_threshold: 0.3       # pro spárování detekce s existujícím trackem
+
+visualizer:
+  display: true
+  save_output: false
+  output_path: "data/outputs/tracked_output.avi"
+
+logging:
+  log_to_console: true
+  log_to_file: true
+  log_file_path: "data/logs/tracker_log.txt"
