@@ -1,8 +1,9 @@
+# detection/detector_yolo.py
+
 import torch
 import numpy as np
 
-
-class DetectorYOLO:
+class YoloAirborneDetector:
     """Wrapper for YOLO model."""
 
     def __init__(self, model, config=None):
@@ -18,32 +19,19 @@ class DetectorYOLO:
     def predict(self, image: np.ndarray):
         """Return predictions as list of dicts."""
         try:
-            results = self.model.predict(
-                source=image,
-                conf=self.conf_threshold,
-                iou=self.iou_threshold,
-                device=self.device,
-                verbose=False
-            )
-
+            results = self.model(image)
             detections = []
-            for r in results:
-                boxes = getattr(r, "boxes", [])
-                if boxes is None:
-                    continue
-                for b in boxes:
-                    cls_id = int(b.cls[0])
-                    conf = float(b.conf[0])
-                    x1, y1, x2, y2 = map(float, b.xyxy[0])
-                    detections.append({
-                        "bbox": [x1, y1, x2, y2],
-                        "confidence": conf,
-                        "class_name": self.model.names[cls_id],
-                    })
+            for r in results[0].boxes:
+                detections.append({
+                    "bbox": r.xyxy[0].tolist(),
+                    "conf": float(r.conf[0]),
+                    "cls": int(r.cls[0]),
+                })
             return detections
         except Exception as e:
-            raise RuntimeError(f"YOLO prediction failed: {e}")
-            
-    def detect_objects(self, image):
-        """Alias for predict() for compatibility with pipeline tests."""
+            print(f"[YoloAirborneDetector] Prediction failed: {e}")
+            return []
+
+    def detect(self, image: np.ndarray):
+        """Alias pro kompatibilitu s main.py."""
         return self.predict(image)

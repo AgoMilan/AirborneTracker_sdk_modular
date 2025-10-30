@@ -1,5 +1,11 @@
 # main.py
 
+import os
+import sys
+
+# Přidání kořenového adresáře projektu do sys.path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import time
 import cv2
 import yaml
@@ -8,11 +14,14 @@ from camera.camera_manager import CameraManager
 from detection.model_loader import ModelLoader
 from detection.detector_yolo import YoloAirborneDetector
 from tracking.object_tracking_manager import ObjectTrackingManager
-from utils.config_loader import ConfigLoader
-from utils.logger import AppLogger
+from config.config_loader import ConfigLoader
+
+from utils.logger import Logger as AppLogger
 from utils.visualizer import Visualizer
 from utils.performance_timer import PerformanceTimer
 from utils.logger import Logger
+from camera.camera_canon import CanonCamera
+
 
 def main():
     # 1. Načti konfiguraci
@@ -32,14 +41,19 @@ def main():
 
     # 3. Načti model
     model = ModelLoader.load_model(cfg["detection"]["model_path"])
-    detector = YoloAirborneDetector(model, classes=cfg["detection"]["classes"],
-                                     confidence_thresh=cfg["detection"]["confidence_thresh"],
-                                     iou_thresh=cfg["detection"]["iou_thresh"])
+    detector = YoloAirborneDetector(
+        model,
+        config=cfg
+        )
+
 
     # 4. Inicializuj kameru / video
-    cam = CameraManager(cfg["camera"]["source"], width=cfg["camera"]["width"],
-                        height=cfg["camera"]["height"], fps=cfg["camera"].get("fps", None))
-    cam.start()
+    from camera.camera_canon import CanonCamera
+    cam = CanonCamera(sdk_path=r"C:\Users\Milan\Projekty\Cuda\EDSDKv131910W\Windows\EDSDK_64\Dll\EDSDK.dll")
+    cam.initialize()
+
+    cam.start_liveview()
+
 
     # 5. Inicializuj tracker
     tracker_mgr = ObjectTrackingManager(max_lost=cfg["tracking"]["max_lost"],
@@ -56,7 +70,7 @@ def main():
     frame_id = 0
     try:
         while True:
-            frame = cam.read_frame()
+            frame = cam.get_frame()
             if frame is None:
                 break
 

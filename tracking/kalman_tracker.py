@@ -1,23 +1,28 @@
 # tracking/object_tracking_manager.py
-from tracking.kalman_tracker import KalmanTracker
+import cv2
+import numpy as np
 
-class ObjectTrackingManager:
-    def __init__(self, max_lost=10, iou_threshold=0.3):
-        self.max_lost = max_lost
-        self.iou_threshold = iou_threshold
-        self.trackers = {}
 
-    def update(self, detections, frame_id):
-        # TODO: implementace IOU párování
-        # Zatím jen placeholder
-        for det in detections:
-            print(f"[TrackingManager] Frame {frame_id}: detekce {det['label']} @ {det['bbox']}")
+class KalmanTracker:
+    """Simple Kalman filter based tracker."""
 
-    def get_active_tracks(self):
-        # Vrací aktuálně sledované objekty
-        return list(self.trackers.values())
+    def __init__(self):
+        self.kalman = cv2.KalmanFilter(4, 2)
+        self.kalman.measurementMatrix = np.array([[1, 0, 0, 0],
+                                                   [0, 1, 0, 0]], np.float32)
+        self.kalman.transitionMatrix = np.array([[1, 0, 1, 0],
+                                                 [0, 1, 0, 1],
+                                                 [0, 0, 1, 0],
+                                                 [0, 0, 0, 1]], np.float32)
+        self.kalman.processNoiseCov = np.eye(4, dtype=np.float32) * 0.03
 
-    def remove_lost_tracks(self):
-        # TODO: implementace odebrání ztracených tracků
-        pass
+    def predict(self):
+        """Predict next position."""
+        return self.kalman.predict()
+
+    def correct(self, x, y):
+        """Correct position based on new measurement."""
+        measurement = np.array([[np.float32(x)], [np.float32(y)]])
+        self.kalman.correct(measurement)
+
 

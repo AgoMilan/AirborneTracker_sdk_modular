@@ -58,3 +58,18 @@ class Logger:
     def critical(self, msg):
         self.logger.critical(msg)
 
+    def log(self, msg, level="info"):
+        """Univerzální logovací metoda kompatibilní s původní verzí."""
+        level = level.lower()
+        if level == "info":
+            self.info(msg)
+        elif level == "warning":
+            self.warning(msg)
+        elif level == "error":
+            self.error(msg)
+        elif level == "debug":
+            self.debug(msg)
+        elif level == "critical":
+            self.critical(msg)
+        else:
+            self.logger.info(msg)
