@@ -3,10 +3,11 @@ from tracking.kalman_tracker import KalmanTracker
 from ultralytics import YOLO
 
 class ObjectTrackingManager:
-    def __init__(self, max_lost=10, iou_threshold=0.3):
+    def __init__(self, max_lost=10, iou_threshold=0.3, debug=False): # debug=True výpis do konzole
         self.max_lost = max_lost
         self.iou_threshold = iou_threshold
         self.trackers = {}
+        self.debug = debug
         self.model = YOLO("models/yolov8n.pt")  # načteme pro mapování ID -> názvu třídy
 
     def update(self, detections, frame_id):
@@ -14,7 +15,7 @@ class ObjectTrackingManager:
         Aktualizuje seznam sledovaných objektů podle detekcí.
         Zatím jen loguje výstup YOLO detekcí.
         """
-        if not detections:
+        if self.debug and not detections:
             print(f"[TrackingManager] Frame {frame_id}: žádné detekce.")
             return
 
@@ -31,7 +32,8 @@ class ObjectTrackingManager:
             bbox = det.get("bbox", [])
             conf = det.get("confidence", None)
 
-            print(f"[TrackingManager] Frame {frame_id}: detekce {label} @ {bbox} (conf={conf})")
+        #výpisy do konzole
+        #print(f"[TrackingManager] Frame {frame_id}: detekce {label} @ {bbox} (conf={conf})")
 
         # TODO: zde doplnit přiřazení detekcí k existujícím trackerům (např. pomocí IOU)
         # např.:

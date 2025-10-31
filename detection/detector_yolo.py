@@ -19,7 +19,7 @@ class YoloAirborneDetector:
     def predict(self, image: np.ndarray):
         """Return predictions as list of dicts."""
         try:
-            results = self.model(image)
+            results = self.model(image, verbose=False)  # verbose=False potlačí vípisy do konzole
             detections = []
             for r in results[0].boxes:
                 detections.append({

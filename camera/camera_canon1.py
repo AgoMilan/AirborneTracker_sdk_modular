@@ -15,18 +15,6 @@ kEdsPropID_Record = 0x00000501
 kEdsRecord_Stop = 0
 kEdsRecord_Start = 4
 
-# Expoziční vlastnosti
-kEdsPropID_Tv = 0x0000040E              # Čas závěrky
-kEdsPropID_Av = 0x0000040D              # Clona
-kEdsPropID_ISOSpeed = 0x0000040F        # ISO
-kEdsPropID_AEMode = 0x00000400          # Expoziční režim
-kEdsPropID_WhiteBalance = 0x00000407    # Vyvážení bílé
-kEdsPropID_ExposureComp = 0x00000406    # Kompenzace expozice
-
-# Hodnoty režimů
-kEdsAEMode_Manual = 0x13
-kEdsWhiteBalance_Daylight = 0x02
-
 
 class CanonCamera:
     """Canon EOS LiveView kamera přes EDSDK."""
@@ -63,54 +51,17 @@ class CanonCamera:
         cam_ref = ctypes.c_void_p()
         self._check(self.edsdk.EdsGetChildAtIndex(cam_list, 0, ctypes.byref(cam_ref)), "EdsGetChildAtIndex")
 
+        # Uvolnit seznam kamer
         try:
             self.edsdk.EdsRelease(cam_list)
         except Exception:
             pass
 
+        # Otevřít relaci
         self._check(self.edsdk.EdsOpenSession(cam_ref), "EdsOpenSession")
         self.cam_ref = cam_ref
         self.initialized = True
         print("[CanonCamera] ✅ Session otevřena.")
-
-        # Nastavení expozice
-        self._apply_default_settings()
-
-    def _apply_default_settings(self):
-        """Optimalizované nastavení pro Canon EOS 77D – korektní LiveView expozice."""
-        try:
-            print("[CanonCamera] ⚙️ Nastavuji expoziční parametry pro LiveView...")
-
-            # ✅ Přepnout do režimu Program AE (automatická expozice)
-            self._set_property(kEdsPropID_AEMode, 0x03)  # Program AE
-
-            # ✅ Povolit evaluative metering (Canon standard)
-            self._set_property(kEdsPropID_MeteringMode, 0x03)
-
-            # ✅ ISO – Auto
-            self._set_property(kEdsPropID_ISOSpeed, 0x00)
-
-            # ✅ Kompenzace expozice: mírné ztmavení (-1 EV)
-            self._set_property(kEdsPropID_ExposureComp, 0x10)
-
-            # ✅ Vyvážení bílé: automatické
-            self._set_property(kEdsPropID_WhiteBalance, 0x00)
-
-            # ✅ Zapnout LiveView výstup na PC
-            self._set_property(kEdsPropID_Evf_OutputDevice, kEdsEvfOutputDevice_PC)
-
-            print("[CanonCamera] ✅ Parametry nastaveny (P, Auto ISO, -1EV, Auto WB, AE aktivní).")
-
-        except Exception as e:
-            print(f"[CanonCamera] ⚠️ Chyba při nastavování parametrů: {e}")
-
-
-    def _set_property(self, prop_id, value):
-        """Pomocná funkce pro nastavení parametru."""
-        val = ctypes.c_int(value)
-        err = self.edsdk.EdsSetPropertyData(self.cam_ref, prop_id, 0, ctypes.sizeof(val), ctypes.byref(val))
-        if err != EDS_OK and self.debug:
-            print(f"[CanonCamera DEBUG] Chyba {hex(err)} při nastavování property {hex(prop_id)}")
 
     def start_liveview(self):
         """Spuštění LiveView režimu."""
@@ -124,6 +75,7 @@ class CanonCamera:
         if result != EDS_OK and self.debug:
             print(f"[CanonCamera DEBUG] Evf_OutputDevice error: {hex(result)}")
 
+        # Zkusit Movie mód (není nutný pro všechny modely)
         record_state = ctypes.c_int(kEdsRecord_Start)
         err = self.edsdk.EdsSetPropertyData(
             self.cam_ref, kEdsPropID_Record, 0, ctypes.sizeof(record_state), ctypes.byref(record_state)
@@ -163,10 +115,12 @@ class CanonCamera:
                     time.sleep(0.2)
                     continue
 
+                # Dekódování JPEG streamu
                 data = (ctypes.c_ubyte * size.value).from_address(pointer.value)
                 img_array = np.frombuffer(data, dtype=np.uint8)
                 frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
 
+                # Uvolnit referenční objekty
                 self.edsdk.EdsRelease(evf_image)
                 self.edsdk.EdsRelease(stream_ref)
 
@@ -219,13 +173,22 @@ class CanonCamera:
     def stop(self):
         """Ukončí LiveView a zavře SDK session."""
         try:
-            if self.cam_ref is not None:
-                self.stop_liveview()
-                self.edsdk.EdsCloseSession(self.cam_ref)
+            if self.camera is not None:
+                # Pokus o zastavení LiveView
+                if self.sdk is not None:
+                    try:
+                        self.sdk.EdsSendCommand(self.camera, 0x00000001, 0)  # kód pro ukončení LiveView
+                        print("[CanonCamera] 📴 LiveView zastaven.")
+                    except Exception:
+                        pass
+
+                # Zavři session
+                self.sdk.EdsCloseSession(self.camera)
                 print("[CanonCamera] ❎ Session uzavřena.")
 
-            if self.edsdk is not None:
-                self.edsdk.EdsTerminateSDK()
+            # Ukonči SDK
+            if self.sdk is not None:
+                self.sdk.EdsTerminateSDK()
                 print("[CanonCamera] ✅ SDK ukončeno.")
 
         except Exception as e:
