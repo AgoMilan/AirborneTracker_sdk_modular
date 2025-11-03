@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Nov  1 23:12:02 2025
+
+@author: Milan
+"""
+
 # detection/detector_yolo.py
 
 import torch

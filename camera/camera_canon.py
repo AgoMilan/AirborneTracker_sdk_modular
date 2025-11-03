@@ -84,8 +84,6 @@ class CanonCamera:
             # ✅ Přepnout do režimu Program AE (automatická expozice)
             self._set_property(kEdsPropID_AEMode, 0x03)  # Program AE
 
-            # ✅ Povolit evaluative metering (Canon standard)
-            self._set_property(kEdsPropID_MeteringMode, 0x03)
 
             # ✅ ISO – Auto
             self._set_property(kEdsPropID_ISOSpeed, 0x00)
