@@ -3,22 +3,39 @@
 # =====================================
 
 camera:
-  source: 0                # 0 = default webkamera, nebo cesta k videu (např. "data/samples/test_video.mp4")
+  source: 0
   width: 1280
   height: 720
   fps: 30
-  max_frames: 0            # 0 = bez limitu
+  max_frames: 0
 
 detection:
-  model_path: "models/yolov8n.pt"   # cesta k YOLO modelu
-  classes: ["airplane", "drone", "bird", "helicopter"]
-  confidence_thresh: 0.4
-  iou_thresh: 0.5
+  # --- Modely YOLO ---
+  model_path_default: "models/yolov8n.pt"        # základní model
+  model_path_m150: "models/yolo8nM150.pt"        # model pro M150 kameru
+
+  # Výběr aktivního modelu ("default" nebo "m150")
+  active_model: "m150"
+
+  # --- Společné parametry pro detekci ---
+  conf_threshold: 0.15
+  iou_threshold: 0.45
+  max_det: 300
   input_size: 640
 
+  # --- Nastavení pro jednotlivé modely ---
+  models:
+    default:        # YOLOv8n (běžný model)
+      allowed_classes: [4, 14]                    # pouze ptáci (14) a letadla (4)
+      classes: ["airplane", "bird"]
+
+    m150:           # YOLOv8nM150 (rozšířený model)
+      allowed_classes: [0, 1, 2, 3]             # drone=0, bird=1, plane=2, helicopter=3
+      classes: ["drone", "bird", "plane", "helicopter"]
+
 tracking:
-  max_lost: 10             # kolik snímků může být objekt nezachycen, než se odstraní
-  iou_threshold: 0.3       # pro spárování detekce s existujícím trackem
+  max_lost: 10
+  iou_threshold: 0.3
 
 visualizer:
   display: true

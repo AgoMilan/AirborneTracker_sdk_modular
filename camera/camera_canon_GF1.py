@@ -32,7 +32,7 @@ kEdsWhiteBalance_Daylight = 0x02
 class CanonCamera:
     """Canon EOS LiveView kamera pro GUI (PyQt6) – stabilní inicializace."""
 
-    def __init__(self, sdk_path, debug=True):
+    def __init__(self, sdk_path, debug=False):
         self.debug = debug
         self.sdk_path = sdk_path
         self.edsdk = None
@@ -49,7 +49,6 @@ class CanonCamera:
             self.available = True
         except Exception as e:
             raise RuntimeError(f"[CanonCamera] Nelze načíst EDSDK DLL: {e}")
-            
 
     def initialize(self):
         """Inicializuje EDSDK a otevře relaci s kamerou."""
@@ -74,43 +73,28 @@ class CanonCamera:
         self.cam_ref = cam_ref
         self.initialized = True
         print("[CanonCamera] ✅ Session otevřena.")
-        
-        # krátká prodleva – Canon SDK to vyžaduje
-        time.sleep(1.0)
-
-        # Spustí LiveView dříve
-        self.start_liveview()
 
         # krátká prodleva – Canon SDK to vyžaduje
         time.sleep(1.0)
 
         # Nastavení expozice
         self._apply_default_settings()
-        #self._debug_read_exposure()
-
-    def _debug_read_exposure(self):
-        """Pomocná debug funkce – čte aktuální expoziční hodnoty z kamery."""
-        props = [
-            (kEdsPropID_Tv, "Tv (čas)"),
-        (kEdsPropID_Av, "Av (clona)"),
-        (kEdsPropID_ISOSpeed, "ISO"),
-        (kEdsPropID_ExposureComp, "EV kompenzace"),
-    ]
-        for prop_id, name in props:
-            val = ctypes.c_int()
-            err = self.edsdk.EdsGetPropertyData(self.cam_ref, prop_id, 0, ctypes.sizeof(val), ctypes.byref(val))
-            if err == EDS_OK:
-                print(f"[CanonCamera DEBUG] {name} = {hex(val.value)}")
-            else:
-                print(f"[CanonCamera DEBUG] Nelze číst {name}, err={hex(err)}")
-
 
     def _apply_default_settings(self):
-        """Jen základní nastavení, expozici nechá ručně."""
-        print("[CanonCamera] ⚙️ Kamera v manuálním režimu – použij ruční nastavení na těle.")
-        self._set_property(kEdsPropID_WhiteBalance, 0x00)  # Auto WB
-        self._set_property(kEdsPropID_Evf_OutputDevice, kEdsEvfOutputDevice_PC)
-        self._debug_read_exposure()
+        """Stejná expozice jako ve funkční CLI verzi."""
+        try:
+            print("[CanonCamera] ⚙️ Nastavuji expoziční parametry pro LiveView...")
+
+            self._set_property(kEdsPropID_AEMode, 0x03)  # Program AE
+            self._set_property(kEdsPropID_ISOSpeed, 0x00)  # Auto ISO
+            self._set_property(kEdsPropID_ExposureComp, 0x10)  # -1 EV
+            self._set_property(kEdsPropID_WhiteBalance, 0x00)  # Auto WB
+            self._set_property(kEdsPropID_Evf_OutputDevice, kEdsEvfOutputDevice_PC)
+
+            print("[CanonCamera] ✅ Parametry nastaveny (P, Auto ISO, -1EV, Auto WB).")
+
+        except Exception as e:
+            print(f"[CanonCamera] ⚠️ Chyba při nastavování parametrů: {e}")
 
     def _set_property(self, prop_id, value):
         val = ctypes.c_int(value)
